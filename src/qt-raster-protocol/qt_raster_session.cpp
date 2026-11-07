@@ -129,9 +129,7 @@ namespace sogen::qt_raster
             }
             reply.op = Hello;
             reply.session = identity;
-            reply.a[0] = 1280;
-            reply.a[1] = 900;
-            reply.a[2] = 1000;
+            std::ranges::copy(this->screen_, reply.a.begin());
             commit = [this, identity] {
                 this->identity_ = identity;
                 this->latest_frame_.reset();
@@ -156,6 +154,7 @@ namespace sogen::qt_raster
             value.parent = parent;
             value.type = packet.a[4];
             value.modality = packet.a[5];
+            value.scale = packet.a[7];
             value.title.assign(payload.begin(), payload.end());
             std::map<uint32_t, window> pending;
             pending.emplace(packet.id, std::move(value));
@@ -248,6 +247,7 @@ namespace sogen::qt_raster
                         .width = packet.a[0],
                         .height = packet.a[1],
                         .stride = packet.a[2],
+                        .scale = packet.a[3],
                         .pixels = std::make_shared<const std::vector<uint8_t>>(std::move(storage))};
             commit = [this, entry, old_size, value = std::move(value)] {
                 this->frame_bytes_ = this->frame_bytes_ - old_size + value.pixels->size();
@@ -346,6 +346,22 @@ namespace sogen::qt_raster
         this->frame_bytes_ = 0;
         this->latest_frame_.reset();
         this->frame_count_ = 0;
+    }
+
+    bool session::configure_screen(const std::array<int32_t, 3>& metrics)
+    {
+        if (this->active() || metrics[0] <= 0 || metrics[0] > 16384 || metrics[1] <= 0 || metrics[1] > 16384 || metrics[2] < 500 ||
+            metrics[2] > 4000)
+        {
+            return false;
+        }
+        this->screen_ = metrics;
+        return true;
+    }
+
+    bool session::input_queue_full() const
+    {
+        return this->input_.size() >= max_events;
     }
 
     bool session::active() const

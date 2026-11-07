@@ -28,6 +28,7 @@ namespace sogen::qt_raster
         int32_t width{};
         int32_t height{};
         int32_t stride{};
+        int32_t scale{1000};
         std::shared_ptr<const std::vector<uint8_t>> pixels{};
     };
 
@@ -41,6 +42,7 @@ namespace sogen::qt_raster
         bool raised{};
         bool focused{};
         int32_t cursor{};
+        int32_t scale{1000};
         uint32_t visibility_order{};
         uint32_t stacking_order{};
         uint32_t focus_order{};
@@ -60,11 +62,13 @@ namespace sogen::qt_raster
         session& operator=(session&&) = delete;
 
         void reset();
+        bool configure_screen(const std::array<int32_t, 3>& metrics);
 
         result exchange(std::span<const uint8_t> request, size_t capacity, const reply_writer& write_reply);
         result exchange(const Packet& packet, std::vector<uint8_t> storage, size_t capacity, const reply_writer& write_reply);
         bool enqueue_input(const Packet& event, std::span<const uint8_t> payload = {});
 
+        bool input_queue_full() const;
         bool active() const;
         uint64_t identity() const;
         const std::map<uint32_t, window>& windows() const;
@@ -78,6 +82,7 @@ namespace sogen::qt_raster
             std::vector<uint8_t> payload{};
         };
 
+        std::array<int32_t, 3> screen_{1280, 900, 1000};
         uint64_t identity_{};
         uint32_t sequence_{};
         std::map<uint32_t, window> windows_{};
